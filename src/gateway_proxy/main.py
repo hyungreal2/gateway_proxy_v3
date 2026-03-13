@@ -33,6 +33,17 @@ def health():
 async def messages(req: MessageRequest):
 
     try:
+        if req.model.startswith("claude-"):
+            payload = req.model_dump(exclude_none=True)
+
+            logger.info("bypass request model=%s messages=%s", req.model, req.messages)
+
+            resp = await bypass.messages(payload)
+
+            logger.info("bypass response %s", resp)
+
+            return JSONResponse(resp)
+
         openai_msgs = anthropic_to_openai_messages([m.model_dump() for m in req.messages])
 
         payload = {
