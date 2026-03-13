@@ -13,7 +13,7 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     cp "${SCRIPT_DIR}/.env.example" "${ENV_FILE}"
 fi
 
-podman run \
+podman run --rm \
     --env-file "${ENV_FILE}" \
     -v "${SCRIPT_DIR}/logs:/app/logs" \
     -p 8080:8080 \
