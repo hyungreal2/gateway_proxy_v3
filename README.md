@@ -11,7 +11,7 @@ Claude Code  →  /v1/messages (Anthropic format)  →  Gateway  →  /v1/chat/c
 ## Requirements
 
 - Python 3.10+
-- [Conda](https://docs.conda.io/) with a `myenv` environment
+- [Conda](https://docs.conda.io/)
 - Docker (user must be in the `docker` group)
 - A running [vLLM](https://github.com/vllm-project/vllm) server
 
@@ -20,8 +20,13 @@ Claude Code  →  /v1/messages (Anthropic format)  →  Gateway  →  /v1/chat/c
 ## Installation
 
 ```bash
-conda run -n myenv pip install -r requirements.txt
-conda run -n myenv pip install -e .
+# Create conda environment
+conda create -n myenv python=3.12 -y
+conda activate myenv
+
+# Install dependencies
+python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 ---
