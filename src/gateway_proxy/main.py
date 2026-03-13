@@ -49,6 +49,7 @@ async def messages(req: MessageRequest):
         payload = {
             "model": req.model,
             "messages": openai_msgs,
+            "max_tokens": req.max_tokens,
             "temperature": req.temperature,
             "tools": req.tools
         }
