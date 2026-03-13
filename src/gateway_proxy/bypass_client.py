@@ -1,4 +1,7 @@
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BypassClient:
@@ -7,13 +10,16 @@ class BypassClient:
         self.base_url = base_url
         self.api_key = api_key
 
-    async def messages(self, payload):
+    async def messages(self, payload, api_key=None):
 
         headers = {"Content-Type": "application/json"}
 
-        if self.api_key:
-            headers["x-api-key"] = self.api_key
+        key = api_key or self.api_key
+        if key:
+            headers["x-api-key"] = key
             headers["anthropic-version"] = "2023-06-01"
+
+        logger.info("bypass payload keys=%s", list(payload.keys()))
 
         async with httpx.AsyncClient() as client:
 
@@ -23,6 +29,9 @@ class BypassClient:
                 headers=headers,
                 timeout=60,
             )
+
+            if not r.is_success:
+                logger.error("bypass error status=%s body=%s", r.status_code, r.text)
 
             r.raise_for_status()
 

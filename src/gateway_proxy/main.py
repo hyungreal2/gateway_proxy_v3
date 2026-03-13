@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from .models import MessageRequest, EmbeddingRequest
 from .converters import (
@@ -30,7 +30,7 @@ def health():
 
 
 @app.post("/v1/messages")
-async def messages(req: MessageRequest):
+async def messages(req: MessageRequest, request: Request):
 
     try:
         if req.model.startswith("claude-"):
@@ -38,7 +38,8 @@ async def messages(req: MessageRequest):
 
             logger.info("bypass request model=%s messages=%s", req.model, req.messages)
 
-            resp = await bypass.messages(payload)
+            api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
+            resp = await bypass.messages(payload, api_key=api_key)
 
             logger.info("bypass response %s", resp)
 
@@ -70,14 +71,15 @@ async def messages(req: MessageRequest):
 
 
 @app.post("/v1/messages/bypass")
-async def messages_bypass(req: MessageRequest):
+async def messages_bypass(req: MessageRequest, request: Request):
 
     try:
         payload = req.model_dump(exclude_none=True)
 
         logger.info("bypass request model=%s messages=%s", req.model, req.messages)
 
-        resp = await bypass.messages(payload)
+        api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
+        resp = await bypass.messages(payload, api_key=api_key)
 
         logger.info("bypass response %s", resp)
 

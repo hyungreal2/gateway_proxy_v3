@@ -23,7 +23,7 @@ class MockVLLM:
 
 class MockBypass:
 
-    async def messages(self, payload):
+    async def messages(self, payload, api_key=None):
         return {
             "role": "assistant",
             "content": [{"type": "text", "text": "bypass mock response"}]
