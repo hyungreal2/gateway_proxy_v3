@@ -14,7 +14,7 @@ class MessageRequest(BaseModel):
     max_tokens: int | None = 8096
     temperature: float | None = 0.7
     tools: list | None = None
-    system: str | None = None
+    system: str | list | None = None
 
 
 class EmbeddingRequest(BaseModel):
