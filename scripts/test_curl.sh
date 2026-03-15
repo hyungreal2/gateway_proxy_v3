@@ -156,6 +156,35 @@ run_test "embeddings_batch" POST "/v1/embeddings" '{
   ]
 }'
 
+# ── Google AI Studio (Gemini) ────────────────────────────────────────────────
+# Uses the OpenAI-compatible endpoint via the gateway's vLLM path.
+# Set VLLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+# and VLLM_API_KEY=<your-google-ai-studio-key> in .env before running.
+
+run_test "gemini_simple" POST "/v1/messages" '{
+  "model": "gemini-2.0-flash",
+  "messages": [
+    {"role": "user", "content": "Hello, who are you?"}
+  ]
+}'
+
+run_test "gemini_multi_turn" POST "/v1/messages" '{
+  "model": "gemini-2.0-flash",
+  "messages": [
+    {"role": "user",      "content": "My name is Alice."},
+    {"role": "assistant", "content": "Nice to meet you, Alice!"},
+    {"role": "user",      "content": "What is my name?"}
+  ]
+}'
+
+run_test "gemini_system_prompt" POST "/v1/messages" '{
+  "model": "gemini-2.0-flash",
+  "messages": [
+    {"role": "system", "content": "You are a helpful assistant that responds only in JSON."},
+    {"role": "user",   "content": "Give me a JSON object with keys name and age."}
+  ]
+}'
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 if [[ "$TARGET" == "all" ]]; then
