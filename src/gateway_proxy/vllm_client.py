@@ -1,4 +1,7 @@
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VLLMClient:
@@ -18,11 +21,14 @@ class VLLMClient:
         async with httpx.AsyncClient() as client:
 
             r = await client.post(
-                f"{self.base_url}/v1/chat/completions",
+                f"{self.base_url}/chat/completions",
                 json=payload,
                 headers=self._headers(),
                 timeout=60
             )
+
+            if not r.is_success:
+                logger.error("vllm error status=%s body=%s", r.status_code, r.text)
 
             r.raise_for_status()
 
@@ -33,7 +39,7 @@ class VLLMClient:
         async with httpx.AsyncClient() as client:
 
             r = await client.post(
-                f"{self.base_url}/v1/embeddings",
+                f"{self.base_url}/embeddings",
                 json=payload,
                 headers=self._headers(),
                 timeout=60
