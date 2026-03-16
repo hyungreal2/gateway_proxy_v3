@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str | None = None
 
     def vllm_extra_headers(self) -> dict:
-        if not self.VLLM_EXTRA_HEADERS:
+        value = (self.VLLM_EXTRA_HEADERS or "").strip()
+        if not value or not value.startswith("{"):
             return {}
-        return json.loads(self.VLLM_EXTRA_HEADERS)
+        return json.loads(value)
 
 settings = Settings()
