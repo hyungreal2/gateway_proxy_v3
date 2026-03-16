@@ -17,6 +17,7 @@ app = FastAPI(title="LLM Gateway")
 vllm = VLLMClient(
     base_url=settings.VLLM_BASE_URL,
     api_key=settings.VLLM_API_KEY,
+    extra_headers=settings.vllm_extra_headers(),
 )
 
 bypass = BypassClient(
@@ -39,6 +40,7 @@ async def messages(req: MessageRequest, request: Request):
             logger.info("bypass request model=%s messages=%s", req.model, req.messages)
 
             api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
+            logger.info("bypass using key source=%s", "request" if request.headers.get("x-api-key") else "config")
             resp = await bypass.messages(payload, api_key=api_key)
 
             logger.info("bypass response %s", resp)

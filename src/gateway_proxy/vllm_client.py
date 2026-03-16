@@ -6,15 +6,17 @@ logger = logging.getLogger(__name__)
 
 class VLLMClient:
 
-    def __init__(self, base_url, api_key=None):
+    def __init__(self, base_url, api_key=None, extra_headers=None):
 
         self.base_url = base_url
         self.api_key = api_key
+        self.extra_headers = extra_headers or {}
 
     def _headers(self):
+        headers = dict(self.extra_headers)
         if self.api_key:
-            return {"Authorization": f"Bearer {self.api_key}"}
-        return {}
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
     async def chat(self, payload):
 
