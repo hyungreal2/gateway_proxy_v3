@@ -4,19 +4,55 @@ class MockVLLM:
 
     async def chat(self, payload):
         return {
-            "choices":[
+            "choices": [
                 {
-                    "message":{
-                        "content":"mock response"
-                    }
+                    "message": {
+                        "content": "mock response"
+                    },
+                    "finish_reason": "stop",
                 }
-            ]
+            ],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 20,
+            },
+        }
+
+    async def chat_tool_calls(self, payload):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "id": "call_abc",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": "{\"city\": \"Seoul\"}",
+                                },
+                            },
+                            {
+                                "id": "call_def",
+                                "function": {
+                                    "name": "get_time",
+                                    "arguments": "{\"tz\": \"KST\"}",
+                                },
+                            },
+                        ]
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 15,
+                "completion_tokens": 25,
+            },
         }
 
     async def embeddings(self, payload):
         return {
-            "data":[
-                {"embedding":[0.1,0.2,0.3]}
+            "data": [
+                {"embedding": [0.1, 0.2, 0.3]}
             ]
         }
 
@@ -53,6 +89,16 @@ def mock_vllm(monkeypatch):
     from gateway_proxy import main
 
     monkeypatch.setattr(main, "vllm", MockVLLM())
+
+
+@pytest.fixture
+def mock_vllm_tools(monkeypatch):
+
+    from gateway_proxy import main
+
+    mock = MockVLLM()
+    mock.chat = mock.chat_tool_calls
+    monkeypatch.setattr(main, "vllm", mock)
 
 
 @pytest.fixture

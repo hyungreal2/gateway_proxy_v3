@@ -24,6 +24,43 @@ def test_messages(mock_vllm):
     )
 
     assert r.status_code == 200
+    body = r.json()
+    assert body["id"].startswith("msg_")
+    assert body["type"] == "message"
+    assert body["role"] == "assistant"
+    assert body["model"] == "test"
+    assert body["stop_reason"] == "end_turn"
+    assert body["usage"] == {"input_tokens": 10, "output_tokens": 20}
+    assert body["content"] == [{"type": "text", "text": "mock response"}]
+
+
+def test_messages_tool_calls(mock_vllm_tools):
+
+    r = client.post(
+        "/v1/messages",
+        json={
+            "model": "test",
+            "messages": [
+                {"role": "user", "content": "What's the weather and time in Seoul?"}
+            ]
+        }
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"].startswith("msg_")
+    assert body["type"] == "message"
+    assert body["role"] == "assistant"
+    assert body["model"] == "test"
+    assert body["stop_reason"] == "tool_use"
+    assert body["usage"] == {"input_tokens": 15, "output_tokens": 25}
+    assert len(body["content"]) == 2
+    assert body["content"][0]["type"] == "tool_use"
+    assert body["content"][0]["id"] == "call_abc"
+    assert body["content"][0]["name"] == "get_weather"
+    assert body["content"][1]["type"] == "tool_use"
+    assert body["content"][1]["id"] == "call_def"
+    assert body["content"][1]["name"] == "get_time"
 
 
 def test_messages_routes_claude_to_bypass(mock_bypass):
@@ -39,7 +76,9 @@ def test_messages_routes_claude_to_bypass(mock_bypass):
     )
 
     assert r.status_code == 200
-    assert r.json()["role"] == "assistant"
+    body = r.json()
+    assert body["role"] == "assistant"
+    assert isinstance(body["content"], list)
 
 
 def test_messages_bypass(mock_bypass):
@@ -55,7 +94,9 @@ def test_messages_bypass(mock_bypass):
     )
 
     assert r.status_code == 200
-    assert r.json()["role"] == "assistant"
+    body = r.json()
+    assert body["role"] == "assistant"
+    assert isinstance(body["content"], list)
 
 
 def test_log_vllm_routing(mock_vllm, caplog):
@@ -114,8 +155,14 @@ def test_messages_routes_gemini(mock_gemini):
     )
 
     assert r.status_code == 200
-    assert r.json()["role"] == "assistant"
-    assert r.json()["model"] == "gemini-2.5-flash"
+    body = r.json()
+    assert body["id"] == "msg_gemini"
+    assert body["type"] == "message"
+    assert body["role"] == "assistant"
+    assert body["model"] == "gemini-2.5-flash"
+    assert body["stop_reason"] == "end_turn"
+    assert body["usage"] == {"input_tokens": 5, "output_tokens": 10}
+    assert body["content"] == [{"type": "text", "text": "gemini mock response"}]
 
 
 def test_log_gemini_routing(mock_gemini, caplog):
