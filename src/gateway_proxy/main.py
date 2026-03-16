@@ -35,20 +35,20 @@ async def messages(req: MessageRequest, request: Request):
 
     try:
         if req.model.startswith("claude-"):
+            dst = f"{settings.ANTHROPIC_BASE_URL}/v1/messages"
+            logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
+
             payload = req.model_dump(exclude_none=True)
-
-            logger.info("bypass request model=%s messages=%s", req.model, req.messages)
-
             api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
-            logger.info("bypass using key source=%s", "request" if request.headers.get("x-api-key") else "config")
             resp = await bypass.messages(payload, api_key=api_key)
 
-            logger.info("bypass response %s", resp)
-
+            logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
             return JSONResponse(resp)
 
-        openai_msgs = anthropic_to_openai_messages([m.model_dump() for m in req.messages])
+        dst = f"{settings.VLLM_BASE_URL}/chat/completions"
+        logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
 
+        openai_msgs = anthropic_to_openai_messages([m.model_dump() for m in req.messages])
         payload = {
             "model": req.model,
             "messages": openai_msgs,
@@ -57,18 +57,14 @@ async def messages(req: MessageRequest, request: Request):
             "tools": req.tools
         }
 
-        logger.info("request model=%s messages=%s", req.model, openai_msgs)
-
         resp = await vllm.chat(payload)
-
         result = openai_to_anthropic(resp)
 
-        logger.info("response %s", result)
-
+        logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
         return JSONResponse(result)
 
     except Exception as e:
-        logger.exception("gateway_error")
+        logger.exception("ERR POST /v1/messages model=%s", req.model)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -76,19 +72,18 @@ async def messages(req: MessageRequest, request: Request):
 async def messages_bypass(req: MessageRequest, request: Request):
 
     try:
+        dst = f"{settings.ANTHROPIC_BASE_URL}/v1/messages"
+        logger.info("IN POST /v1/messages/bypass model=%s → OUT %s", req.model, dst)
+
         payload = req.model_dump(exclude_none=True)
-
-        logger.info("bypass request model=%s messages=%s", req.model, req.messages)
-
         api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
         resp = await bypass.messages(payload, api_key=api_key)
 
-        logger.info("bypass response %s", resp)
-
+        logger.info("OK  POST /v1/messages/bypass model=%s ← %s", req.model, dst)
         return JSONResponse(resp)
 
     except Exception as e:
-        logger.exception("bypass_error")
+        logger.exception("ERR POST /v1/messages/bypass model=%s", req.model)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -98,11 +93,15 @@ async def embeddings(req: EmbeddingRequest):
     if not req.input:
         raise HTTPException(status_code=400, detail="missing input")
 
+    dst = f"{settings.VLLM_BASE_URL}/embeddings"
+    logger.info("IN POST /v1/embeddings model=%s → OUT %s", req.model, dst)
+
     resp = await vllm.embeddings({
         "model": req.model,
         "input": req.input
     })
 
+    logger.info("OK  POST /v1/embeddings model=%s ← %s", req.model, dst)
     return resp
 
 
