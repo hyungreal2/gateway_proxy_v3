@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     LOG_DIR: str = "logs"
     ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
     ANTHROPIC_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = None
 
     def vllm_extra_headers(self) -> dict:
         value = (self.VLLM_EXTRA_HEADERS or "").strip()

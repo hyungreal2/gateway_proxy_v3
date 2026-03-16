@@ -7,6 +7,7 @@ from .converters import (
 )
 from .vllm_client import VLLMClient
 from .bypass_client import BypassClient
+from .gemini_client import GeminiClient
 from .logger import get_logger
 from .config import settings
 
@@ -25,6 +26,8 @@ bypass = BypassClient(
     api_key=settings.ANTHROPIC_API_KEY,
 )
 
+gemini = GeminiClient(api_key=settings.GEMINI_API_KEY)
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -34,6 +37,17 @@ def health():
 async def messages(req: MessageRequest, request: Request):
 
     try:
+        if req.model.startswith("gemini-"):
+            dst = gemini.endpoint(req.model)
+            logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
+
+            payload = req.model_dump(exclude_none=True)
+            api_key = request.headers.get("x-goog-api-key") or settings.GEMINI_API_KEY
+            resp = await gemini.messages(payload, api_key=api_key)
+
+            logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
+            return JSONResponse(resp)
+
         if req.model.startswith("claude-"):
             dst = f"{settings.ANTHROPIC_BASE_URL}/v1/messages"
             logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
@@ -58,7 +72,7 @@ async def messages(req: MessageRequest, request: Request):
         }
 
         resp = await vllm.chat(payload)
-        result = openai_to_anthropic(resp)
+        result = openai_to_anthropic(resp, model=req.model)
 
         logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
         return JSONResponse(result)

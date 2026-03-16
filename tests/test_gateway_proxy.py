@@ -103,6 +103,36 @@ def test_log_embeddings_routing(mock_vllm, caplog):
     assert any("embed-model" in m and "/embeddings" in m for m in ok_logs)
 
 
+def test_messages_routes_gemini(mock_gemini):
+
+    r = client.post(
+        "/v1/messages",
+        json={
+            "model": "gemini-2.5-flash",
+            "messages": [{"role": "user", "content": "Hello!"}]
+        }
+    )
+
+    assert r.status_code == 200
+    assert r.json()["role"] == "assistant"
+    assert r.json()["model"] == "gemini-2.5-flash"
+
+
+def test_log_gemini_routing(mock_gemini, caplog):
+    import logging
+    with caplog.at_level(logging.INFO, logger="gateway_proxy.main"):
+        client.post(
+            "/v1/messages",
+            json={"model": "gemini-2.5-flash", "messages": [{"role": "user", "content": "hi"}]}
+        )
+
+    in_logs = [r.message for r in caplog.records if r.message.startswith("IN")]
+    ok_logs = [r.message for r in caplog.records if r.message.startswith("OK")]
+
+    assert any("gemini-2.5-flash" in m and "generateContent" in m for m in in_logs)
+    assert any("gemini-2.5-flash" in m and "generateContent" in m for m in ok_logs)
+
+
 def test_embeddings(mock_vllm):
 
     r = client.post(
