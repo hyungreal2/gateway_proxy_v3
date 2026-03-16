@@ -6,9 +6,10 @@ logger = logging.getLogger(__name__)
 
 class BypassClient:
 
-    def __init__(self, base_url, api_key=None):
+    def __init__(self, base_url, api_key=None, timeout=60):
         self.base_url = base_url
         self.api_key = api_key
+        self.timeout = timeout
 
     async def messages(self, payload, api_key=None):
 
@@ -27,7 +28,7 @@ class BypassClient:
                 f"{self.base_url}/v1/messages",
                 json=payload,
                 headers=headers,
-                timeout=60,
+                timeout=self.timeout,
             )
 
             if not r.is_success:

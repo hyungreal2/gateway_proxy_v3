@@ -69,7 +69,6 @@ The gateway runs as a single FastAPI app (`src/gateway_proxy/main.py`) with two 
 | `models.py` | Pydantic request models (`MessageRequest`, `EmbeddingRequest`) |
 | `vllm_client.py` | `VLLMClient` — async httpx wrapper for vLLM's `/v1/chat/completions` and `/v1/embeddings` |
 | `config.py` | `Settings` (pydantic-settings `BaseSettings`): `VLLM_BASE_URL`, `VLLM_API_KEY`, `LOG_DIR` env vars |
-| `tool_parser.py` | Utility to extract tool calls from raw text (handles `<tool_call>...</tool_call>` XML tags and bare JSON) |
 | `logger.py` | Stdlib logger with stdout handler + `RotatingFileHandler` writing to `LOG_DIR/gateway.log` |
 
 ### Configuration (environment variables)

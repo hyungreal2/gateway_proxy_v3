@@ -6,11 +6,12 @@ logger = logging.getLogger(__name__)
 
 class VLLMClient:
 
-    def __init__(self, base_url, api_key=None, extra_headers=None):
+    def __init__(self, base_url, api_key=None, extra_headers=None, timeout=60):
 
         self.base_url = base_url
         self.api_key = api_key
         self.extra_headers = extra_headers or {}
+        self.timeout = timeout
 
     def _headers(self):
         headers = dict(self.extra_headers)
@@ -26,7 +27,7 @@ class VLLMClient:
                 f"{self.base_url}/chat/completions",
                 json=payload,
                 headers=self._headers(),
-                timeout=60
+                timeout=self.timeout
             )
 
             if not r.is_success:
@@ -44,7 +45,7 @@ class VLLMClient:
                 f"{self.base_url}/embeddings",
                 json=payload,
                 headers=self._headers(),
-                timeout=60
+                timeout=self.timeout
             )
 
             r.raise_for_status()

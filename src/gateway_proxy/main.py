@@ -19,61 +19,60 @@ vllm = VLLMClient(
     base_url=settings.VLLM_BASE_URL,
     api_key=settings.VLLM_API_KEY,
     extra_headers=settings.vllm_extra_headers(),
+    timeout=settings.HTTP_TIMEOUT,
 )
 
 bypass = BypassClient(
     base_url=settings.ANTHROPIC_BASE_URL,
     api_key=settings.ANTHROPIC_API_KEY,
+    timeout=settings.HTTP_TIMEOUT,
 )
 
-gemini = GeminiClient(api_key=settings.GEMINI_API_KEY)
+gemini = GeminiClient(api_key=settings.GEMINI_API_KEY, timeout=settings.HTTP_TIMEOUT)
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+def _resolve_destination(model: str) -> str:
+    if model.startswith("gemini-"):
+        return gemini.endpoint(model)
+    if model.startswith("claude-"):
+        return f"{settings.ANTHROPIC_BASE_URL}/v1/messages"
+    return f"{settings.VLLM_BASE_URL}/chat/completions"
+
+
+async def _dispatch(req: MessageRequest, request: Request):
+    if req.model.startswith("gemini-"):
+        payload = req.model_dump(exclude_none=True)
+        api_key = request.headers.get("x-goog-api-key") or settings.GEMINI_API_KEY
+        return await gemini.messages(payload, api_key=api_key)
+
+    if req.model.startswith("claude-"):
+        payload = req.model_dump(exclude_none=True)
+        api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
+        return await bypass.messages(payload, api_key=api_key)
+
+    openai_msgs = anthropic_to_openai_messages([m.model_dump() for m in req.messages])
+    payload = {
+        "model": req.model,
+        "messages": openai_msgs,
+        "max_tokens": req.max_tokens,
+        "temperature": req.temperature,
+        "tools": req.tools,
+    }
+    resp = await vllm.chat(payload)
+    return openai_to_anthropic(resp, model=req.model)
+
+
 @app.post("/v1/messages")
 async def messages(req: MessageRequest, request: Request):
 
     try:
-        if req.model.startswith("gemini-"):
-            dst = gemini.endpoint(req.model)
-            logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
-
-            payload = req.model_dump(exclude_none=True)
-            api_key = request.headers.get("x-goog-api-key") or settings.GEMINI_API_KEY
-            resp = await gemini.messages(payload, api_key=api_key)
-
-            logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
-            return JSONResponse(resp)
-
-        if req.model.startswith("claude-"):
-            dst = f"{settings.ANTHROPIC_BASE_URL}/v1/messages"
-            logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
-
-            payload = req.model_dump(exclude_none=True)
-            api_key = request.headers.get("x-api-key") or settings.ANTHROPIC_API_KEY
-            resp = await bypass.messages(payload, api_key=api_key)
-
-            logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
-            return JSONResponse(resp)
-
-        dst = f"{settings.VLLM_BASE_URL}/chat/completions"
+        dst = _resolve_destination(req.model)
         logger.info("IN POST /v1/messages model=%s → OUT %s", req.model, dst)
-
-        openai_msgs = anthropic_to_openai_messages([m.model_dump() for m in req.messages])
-        payload = {
-            "model": req.model,
-            "messages": openai_msgs,
-            "max_tokens": req.max_tokens,
-            "temperature": req.temperature,
-            "tools": req.tools
-        }
-
-        resp = await vllm.chat(payload)
-        result = openai_to_anthropic(resp, model=req.model)
-
+        result = await _dispatch(req, request)
         logger.info("OK  POST /v1/messages model=%s ← %s", req.model, dst)
         return JSONResponse(result)
 
