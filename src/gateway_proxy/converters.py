@@ -45,13 +45,14 @@ def openai_to_anthropic(resp, model="unknown"):
 
     if "tool_calls" in msg:
 
-        call = msg["tool_calls"][0]
-
-        content = [{
-            "type": "tool_use",
-            "name": call["function"]["name"],
-            "input": call["function"]["arguments"]
-        }]
+        content = []
+        for call in msg["tool_calls"]:
+            content.append({
+                "type": "tool_use",
+                "id": call.get("id", "call_" + uuid4().hex[:8]),
+                "name": call["function"]["name"],
+                "input": call["function"]["arguments"],
+            })
 
     else:
         content = [{
