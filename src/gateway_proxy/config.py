@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str | None = None
     HTTP_TIMEOUT: int = 60
 
+    @property
+    def gemini_api_key(self) -> str | None:
+        return self.GEMINI_API_KEY or self.VLLM_API_KEY
+
     def vllm_extra_headers(self) -> dict:
         value = (self.VLLM_EXTRA_HEADERS or "").strip()
         if not value or not value.startswith("{"):

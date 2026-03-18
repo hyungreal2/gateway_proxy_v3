@@ -78,7 +78,19 @@ def openai_to_anthropic(resp, model="unknown"):
 
 def anthropic_to_gemini(req):
     contents = []
+    system_parts_from_messages = []
+
     for msg in req.get("messages", []):
+        if msg["role"] == "system":
+            content = msg["content"]
+            if isinstance(content, str):
+                system_parts_from_messages.append({"text": content})
+            else:
+                system_parts_from_messages.extend(
+                    {"text": b["text"]} for b in content if b.get("type") == "text"
+                )
+            continue
+
         role = "model" if msg["role"] == "assistant" else "user"
         content = msg["content"]
         if isinstance(content, str):
@@ -89,13 +101,16 @@ def anthropic_to_gemini(req):
 
     payload = {"contents": contents}
 
+    system_parts = []
     system = req.get("system")
     if system:
         if isinstance(system, str):
-            payload["systemInstruction"] = {"parts": [{"text": system}]}
+            system_parts = [{"text": system}]
         elif isinstance(system, list):
-            parts = [{"text": b["text"]} for b in system if b.get("type") == "text"]
-            payload["systemInstruction"] = {"parts": parts}
+            system_parts = [{"text": b["text"]} for b in system if b.get("type") == "text"]
+    system_parts.extend(system_parts_from_messages)
+    if system_parts:
+        payload["systemInstruction"] = {"parts": system_parts}
 
     gen_config = {}
     if req.get("max_tokens"):
